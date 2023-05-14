@@ -4,13 +4,25 @@
 # @author Robert Carlos                                 #
 # email robert.carlos@linuxmail.org                     #
 # 2018-08-07 (CC BY 3.0 BR)                             #
+#                                                       #
+# @contrib Felipe Costa                                 #
+# email chezcostalipe@gmail.com                         #
 
-from statistics import mean, median, stdev
-import datetime
+
 import random
+import time
+import os
+
+from statistics import(
+    mean,
+    median,
+    stdev
+)
 
 from pygal.style import Style
 from pygal import Bar
+
+from progress.bar import Bar as ascii_bar_progress
 
 
 custom_style = Style(
@@ -41,7 +53,7 @@ class PyDice():
         shoot = self.shooter
         add_up = 0
         while shoot > 0:
-            random.seed(datetime.datetime.now())
+            random.seed()
             for d in range(self.dice):
                 add_up += random.randint(1, self.sides)
 
@@ -99,21 +111,67 @@ class DiceGraph(PyDice):
         self.chart.y_title = 'Frequência'
         self.chart.add('Dados', self.dice_freq)
         self.chart.render_to_file('rcg_chart_resultado.svg')
+    
+    def dice_graphics_open_in_browser(self):
+        dados_media = round(mean(self.dice_freq), 2)
+        dados_mediana = round(median(self.dice_freq), 2)
+        dados_desvio_padrao = round(stdev(self.dice_freq), 2)
 
+        self.chart.title = f'Resultado se jogar {self.dice} dados de {self.sides} lados {self.shooter} vezes.'
+        
+        self.chart.x_labels = list(range(self.dice, self.max_result + 1))
+        self.chart.x_title = f'Resultado \nMédia: {dados_media}\nMediana: {dados_mediana}\nDesvio Padrão: {dados_desvio_padrao}'
+
+        self.chart.y_title = 'Frequência'
+
+        self.chart.add('Dados', self.dice_freq)
+        self.chart.render_in_browser()
+        
     def terminal(self):
         '''Classe que exibe os resultados em texto.'''
         print('Dados sorteados:      ' + str(self.come_out_roll[:11]))
         print('Frequência dos dados: ' + str(self.dice_freq))
+        
+    def strResultado(self):
+        return str(self.rolar[:11])
 
 
+def progress_bar():
+    bar = ascii_bar_progress('Rolando dados... ', max=10)
+    for i in range(10):
+        time.sleep(0.3)
+        bar.next()
+    bar.finish()
+    time.sleep(1)
+        
 def dice_gen():
     lados = 6
     dados = 2
     rodada = 360
-
     dice = DiceGraph(sides=lados, dice=dados, shooter=rodada)
+    
+    print(f'\nSerão lançados {dados} dados, {rodada} vezes...\n')
+    
+    progress_bar()
+    
+    try:
+        dice.dice_graphics()
+        print('Grafico gerado...')
+        user_input = input('Deseja abrir? (Y/N) ').upper()
+        if user_input == 'Y':
+            dice.dice_graphics_open_in_brower()
+        else:
+            None
+        import os
+        print(f"Grafico gerado em {os.path.abspath('rcg_chart_resultado.svg')}")
+    except TypeError:
+        print('Não foi possivel geral o arquivo SVG')
+        
+               
     dice.dice_graphics()
-    dice.terminal()
+    resultado_dados = dice.strResultado()
+    print(f'\nOs numeros que sairam foram {resultado_dados}')
+    #dice.terminal()
 
 
 dice_gen()
